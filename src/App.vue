@@ -4,6 +4,9 @@
       <router-link to="/">Home</router-link> |
       <router-link to="/about">About</router-link>
     </div>
+    <!-- 测试代码 {$store.state.counter-->
+    <p @click="$store.commit('add')">conunt: {{$store.state.count}}</p>
+    <p @click="$store.dispatch('add')">async conunt: {{$store.state.count}}</p>
     <router-view/>
   </div>
 </template>
