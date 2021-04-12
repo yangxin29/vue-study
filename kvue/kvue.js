@@ -211,6 +211,7 @@ class Compile {
   }
   // k-model方法
   model (node, exp) {
+    // update 方法只完成对象的更新和赋值,因此还需要一个事件
     this.update(node, exp, 'model')
     // 需要事件监听
     node.addEventListener('input', v => {
