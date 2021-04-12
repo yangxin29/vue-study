@@ -10,9 +10,11 @@
 
 <body>
   <div id="app">
-    <p>{{counter}}</p>
+    <p @click="handleAdd">{{counter}}</p>
     <p k-text="counter"></p>
     <p k-html="desc"></p>
+    <input k-model="modelStr" type="text">
+    {{modelStr}}
   </div>
   <!-- <script src="../node_modules/vue/dist/vue.js"></script> -->
   <script src="./kvue.js"></script>
@@ -21,12 +23,18 @@
       el: '#app',
       data: {
         counter: 1,
-        desc: '<h6>测试代码</h6>'
+        desc: '<h6>测试代码</h6>',
+        modelStr: '111'
       },
+      methods: {
+        handleAdd () {
+          this.counter++
+        }
+      }
     })
-    setInterval(() => {
-      app.counter++
-    }, 1000);
+    // setInterval(() => {
+    //   app.counter++
+    // }, 1000);
   </script>
 </body>
 

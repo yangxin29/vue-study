@@ -2,6 +2,20 @@
 // 1. 将data做响应式处理
 
 
+// 数组响应式
+const orginalProto = Array.prototype
+// 备份数组的原型
+const arrayProto = Object.create(orginalProto)
+const arr = ['push', 'pop', 'shift', 'unshift']
+arr.forEach(method => {
+  arrayProto[method] = function () {
+    // 原始操作
+    orginalProto[method].apply(this, arguments)
+    // 覆盖操作: 通知更新
+    console.log('数组执行', + method + '操作')
+  }
+})
+
 // Object.defineProperty()
 // 对传入对象的key进行一次拦截, 对某个对象的某个key做拦截
 function definReactive(obj, key, val) {
@@ -17,7 +31,7 @@ function definReactive(obj, key, val) {
       return val
     },
     set(newValue) {
-      if(val !== newValue) {
+      if (val !== newValue) {
         // 如果newValue 是对象也需要做响应式处理
         observe(newValue)
         val = newValue
@@ -33,13 +47,13 @@ function definReactive(obj, key, val) {
 
 // 遍历指定数据对象中的每个key,并拦截他们
 function observe(obj) {
-	// 判断是否是一个对象
-	if(typeof obj !== 'object' || obj === null) {
-		return obj
-	}
-	// Object.keys(obj).forEach(key => {
-	// 	definReactive(obj, key, obj[key])
-	// })
+  // 判断是否是一个对象
+  if (typeof obj !== 'object' || obj === null) {
+    return obj
+  }
+  // Object.keys(obj).forEach(key => {
+  // 	definReactive(obj, key, obj[key])
+  // })
   // 每遇到一个对象,就创建一个Observer的实例
   // 创建一个Observer 实例去做拦截操作
   new Observer(obj)
@@ -71,7 +85,17 @@ class Observer {
     // 应该需要判断value 类型, 然后对对象和数组进行不同的操作
     // 这里只处理对象
     // 遍历对象
-    this.walk(value)
+    // this.walk(value)
+    if (Array.isArray(value)) {
+      // 覆盖原型,替换7个变更操作
+      obj.__proto__ = arrayProto
+      Object.keys(value).forEach(key => {
+        observe(value[key])
+      })
+    } else {
+      // 遍历对象
+      this.walk(value)
+    }
   }
 
   walk(obj) {
@@ -114,7 +138,7 @@ class Compile {
         // console.log('编译元素', node.nodeName)
         // 节点编译
         this.compileElement(node)
-      } else if(this.isInter(node)) {
+      } else if (this.isInter(node)) {
         // 文本, {{xxxx}}
         // console.log('编译文本', node.textContent, RegExp.$1)
         // 将文本转义一下
@@ -150,12 +174,19 @@ class Compile {
         const dir = attrName.substring(2) // 得到xxx
         // 指令的实际的操作方法
         this[dir] && this[dir](node, exp)
+      } else if (this.isEvent(attrName)) {
+        // 处理事件 @click=""
+        const dir = attrName.substring(1)
+        // 事件监听
+        this.eventHandler(node, exp, dir)
       }
-      // 处理事件
-      
     })
   }
 
+  // 判断是否是事件
+  isEvent(attrName) {
+    return attrName.indexOf('@') === 0
+  }
   // 判断是否是指令
   isDirective(attrName) {
     return attrName.indexOf('k-') === 0
@@ -178,15 +209,34 @@ class Compile {
   htmlUpdater(node, val) {
     node.innerHTML = val
   }
+  // k-model方法
+  model (node, exp) {
+    this.update(node, exp, 'model')
+    // 需要事件监听
+    node.addEventListener('input', v => {
+      this.$vm[exp] = v.target.value
+    })
+  }
+  modelUpdater(node, val) {
+    node.value = val
+  }
   // 提取update, 初始化和更新函数创建
   update(node, exp, dir) {
-    const fn = this[dir+'Updater']
+    const fn = this[dir + 'Updater']
     // 初始化过程
     fn && fn(node, this.$vm[exp])
     // 更新
-    new Watcher(this.$vm, exp, function(val) {
+    new Watcher(this.$vm, exp, function (val) {
       fn && fn(node, val)
     })
+  }
+  // 处理事件
+  eventHandler(node, exp, dir) {
+    const fn = this.$vm.$options.methods && this.$vm.$options.methods[exp]
+    if (fn) {
+      // 需要改变this指向
+      node.addEventListener(dir, fn.bind(this.$vm))
+    }
   }
 }
 
